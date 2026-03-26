@@ -1,28 +1,47 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "your-dockerhub-username/jenkins-demo"
+        TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}"
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
-                echo "Checking out code from ${env.BRANCH_NAME}"
+                checkout scm
+                echo "Branch: ${env.BRANCH_NAME}"
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo "Building branch: ${env.BRANCH_NAME}"
+                sh "docker build -t ${IMAGE_NAME}:${TAG} ."
             }
         }
 
-        stage('Test') {
+        stage('Push to DockerHub') {
             steps {
-                echo "Testing branch: ${env.BRANCH_NAME}"
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    sh """
+                    echo $PASS | docker login -u $USER --password-stdin
+                    docker push ${IMAGE_NAME}:${TAG}
+                    """
+                }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Container') {
             steps {
-                echo "Deploying branch: ${env.BRANCH_NAME}"
+                sh """
+                docker rm -f ${env.BRANCH_NAME} || true
+                docker run -d --name ${env.BRANCH_NAME} ${IMAGE_NAME}:${TAG}
+                """
             }
         }
     }
