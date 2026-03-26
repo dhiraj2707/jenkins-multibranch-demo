@@ -50,7 +50,7 @@ pipeline {
                 # Remove old container if exists
                 docker rm -f ${env.BRANCH_NAME} || true
                 # Run new container
-                docker run -d --name ${env.BRANCH_NAME} -p 8080:80 ${IMAGE_NAME}:${TAG}
+                docker run -d --name ${env.BRANCH_NAME} -p 8081:80 ${IMAGE_NAME}:${TAG}
                 """
             }
         }
